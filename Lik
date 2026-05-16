@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LIK - Love Insurance Kompany (ChatGPT Edition)</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0b0c10; color: #c5c6c7; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        
+        /* Mobile phone aur WebView ke liye perfect response layout */
+        .phone-container { width: 100%; max-width: 100%; height: 100vh; background: #1f2833; display: flex; flex-direction: column; overflow: hidden; }
+        
+        .header { background: #0b0c10; padding: 15px; text-align: center; border-bottom: 2px solid #45f3ff; }
+        .header h1 { color: #45f3ff; font-size: 22px; font-weight: bold; letter-spacing: 2px; }
+        .header p { color: #66fcf1; font-size: 10px; text-transform: uppercase; margin-top: 5px; }
+        
+        .chat-box { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #1f2833; scroll-behavior: smooth; }
+        
+        .message { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; word-wrap: break-word; }
+        .user-msg { background: #45f3ff; color: #0b0c10; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .lik-msg { background: #0b0c10; color: #66fcf1; align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid #66fcf1; }
+        
+        /* ChatGPT Format Styling */
+        .lik-msg p { margin-bottom: 8px; }
+        .lik-msg p:last-child { margin-bottom: 0; }
+        .lik-msg strong { color: #fff; font-weight: bold; }
+        .lik-msg ul, .lik-msg ol { margin-left: 20px; margin-bottom: 8px; }
+        
+        .input-area { padding: 12px; background: #0b0c10; display: flex; gap: 8px; border-top: 1px solid #1f2833; align-items: center; }
+        input { flex: 1; padding: 12px 18px; background: #1f2833; border: 1px solid #45f3ff; border-radius: 25px; color: #fff; font-size: 15px; outline: none; }
+        input::placeholder { color: #c5c6c7; }
+        
+        button { background: #45f3ff; border: none; color: #0b0c10; padding: 12px 22px; border-radius: 25px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s; -webkit-tap-highlight-color: transparent; }
+        button:hover { background: #66fcf1; }
+        
+        .thinking-mode { font-style: italic; opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+<div class="phone-container">
+    <div class="header">
+        <h1>L I K</h1>
+        <p>Love Insurance Kompany • AI Ecosystem</p>
+    </div>
+    
+    <div class="chat-box" id="chatBox">
+        <div class="message lik-msg">Hello! Main LIK hoon. Aapka AI sacha dost. Aaj aap kaisa feel kar rahe hain? Apne emotions, dukh-sukh ya koi bhi problem mere saath share karein. Main hamesha aapke saath hoon.</div>
+    </div>
+    
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="LIK se baat karein ya problem share karein..." onkeypress="handleKeyPress(event)">
+        <button onclick="sendMessage()">SEND</button>
+    </div>
+</div>
+
+<script>
+    // LIK ka core dimaag aur instruction (ChatGPT power with high empathy)
+    const LIK_SYSTEM_INSTRUCTION = "You are LIK (Love Insurance Kompany), an ultra-advanced AI companion. You function with deep emotional intelligence like an expert relationship counselor and a true best friend. Understand human emotions, breakups, trust issues, loneliness, and daily stress. Speak in a comforting mix of Hindi and English (Hinglish). Provide clear, structured solutions using bullet points or bold text where necessary (like ChatGPT). Whenever the user is sad, low, or testing your friendship, naturally include 'hamesha tumhare saath' or 'always with you' to make them feel safe.";
+    
+    // Aapki Gemini API Key (Ise safe rakhein)
+    const GEMINI_API_KEY = "AIzaSyAOqyWVWR3pbbGl8pKwZf07Npaa-jZz9t0"; 
+
+    // Chat History Array (Purani baatein yaad rakhne ke liye)
+    let chatHistory = [];
+
+    // Voice Function
+    function playLikVoice() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // Purani bachi voice clear karne ke liye
+            const utterance = new SpeechSynthesisUtterance("LIK is always right");
+            utterance.lang = 'en-US';
+            utterance.rate = 1.0; 
+            utterance.pitch = 0.95; 
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    async function sendMessage() {
+        const inputField = document.getElementById('userInput');
+        const userText = inputField.value.trim();
+        if (userText === "") return;
+
+        // 1. User Message Screen par dikhao
+        appendMessage(userText, 'user-msg', false);
+        inputField.value = "";
+
+        // History me save karo
+        chatHistory.push({
+            role: "user",
+            parts: [{ text: userText }]
+        });
+
+        // 2. Loading State (LIK soch raha hai...)
+        const thinkingId = appendMessage("LIK soch raha hai...", 'lik-msg thinking-mode', false);
+
+        try {
+            // High-speed Google Gemini API Call
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: chatHistory,
+                    systemInstruction: {
+                        parts: [{ text: LIK_SYSTEM_INSTRUCTION }]
+                    }
+                })
+            });
+
+            if (!response.ok) throw new Error("API Error");
+
+            const data = await response.json();
+            const likResponse = data.candidates[0].content.parts[0].text;
+            
+            // AI ka reply history me save karo
+            chatHistory.push({
+                role: "model",
+                parts: [{ text: likResponse }]
+            });
+
+            // Loading message hatao aur real reply ChatGPT style me show karo
+            document.getElementById(thinkingId).remove();
+            appendMessage(likResponse, 'lik-msg', true);
+
+            // Voice Trigger Alert
+            const lowerResponse = likResponse.toLowerCase();
+            if (lowerResponse.includes("hamesha tumhare saath") || lowerResponse.includes("always with you")) {
+                setTimeout(playLikVoice, 400); 
+            }
+
+        } catch (error) {
+            console.error(error);
+            document.getElementById(thinkingId).remove();
+            appendMessage("Lagta hai internet thoda slow hai dost. Ek baar fir se try karo na!", 'lik-msg', false);
+        }
+    }
+
+    // Advanced Message Display Function
+    function appendMessage(text, className, isMarkdown) {
+        const chatBox = document.getElementById('chatBox');
+        const msgDiv = document.createElement('div');
+        const id = 'msg-' + Date.now();
+        msgDiv.id = id;
+        msgDiv.className = `message ${className}`;
+        
+        if (isMarkdown && typeof marked !== 'undefined') {
+            // Marked library ki madad se text ko bold/lists me convert karna
+            msgDiv.innerHTML = marked.parse(text);
+        } else {
+            msgDiv.innerText = text;
+        }
+        
+        chatBox.appendChild(msgDiv);
+        
+        // Android Phone Auto-scroll fix
+        setTimeout(() => {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }, 50);
+        
+        return id;
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') { sendMessage(); }
+    }
+</script>
+
+</body>
+</html>
